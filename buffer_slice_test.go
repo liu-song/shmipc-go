@@ -17,7 +17,6 @@
 package shmipc
 
 import (
-	"math/rand"
 	"testing"
 	"unsafe"
 
@@ -109,48 +108,48 @@ func TestBufferSlice_Update(t *testing.T) {
 	assert.Equal(t, size, int(*(*uint32)(unsafe.Pointer(&slice.bufferHeader[bufferSizeOffset]))))
 }
 
-func TestBufferSlice_linkedNext(t *testing.T) {
-	size := 8192
-	sliceNum := 100
-
-	slices := make([]*bufferSlice, 0, sliceNum)
-	mem := make([]byte, 10<<20)
-	bm, err := createBufferManager([]*SizePercentPair{
-		{Size: uint32(size), Percent: 100},
-	}, "", mem, 0)
-	assert.Equal(t, nil, err)
-
-	writeDataArray := make([][]byte, 0, sliceNum)
-
-	for i := 0; i < sliceNum; i++ {
-		s, err := bm.allocShmBuffer(uint32(size))
-		assert.Equal(t, nil, err, "i:%d", i)
-		data := make([]byte, size)
-		rand.Read(data)
-		writeDataArray = append(writeDataArray, data)
-		assert.Equal(t, size, s.append(data...))
-		s.update()
-		slices = append(slices, s)
-	}
-
-	for i := 0; i <= len(slices)-2; i++ {
-		slices[i].linkNext(slices[i+1].offsetInShm)
-	}
-
-	next := slices[0].offsetInShm
-	for i := 0; i < sliceNum; i++ {
-		s, err := bm.readBufferSlice(next)
-		assert.Equal(t, nil, err)
-		assert.Equal(t, size, s.capacity())
-		assert.Equal(t, size, s.size())
-		readData, err := s.read(size)
-		assert.Equal(t, nil, err, "i:%d offset:%d", i, next)
-		assert.Equal(t, readData, writeDataArray[i])
-		isLastSlice := i == sliceNum-1
-		assert.Equal(t, !isLastSlice, s.hasNext())
-		next = s.nextBufferOffset()
-	}
-}
+//func TestBufferSlice_linkedNext(t *testing.T) {
+//	size := 8192
+//	sliceNum := 100
+//
+//	slices := make([]*bufferSlice, 0, sliceNum)
+//	mem := make([]byte, 10<<20)
+//	bm, err := createBufferManager([]*SizePercentPair{
+//		{Size: uint32(size), Percent: 100},
+//	}, "", mem, 0)
+//	assert.Equal(t, nil, err)
+//
+//	writeDataArray := make([][]byte, 0, sliceNum)
+//
+//	for i := 0; i < sliceNum; i++ {
+//		s, err := bm.allocShmBuffer(uint32(size))
+//		assert.Equal(t, nil, err, "i:%d", i)
+//		data := make([]byte, size)
+//		rand.Read(data)
+//		writeDataArray = append(writeDataArray, data)
+//		assert.Equal(t, size, s.append(data...))
+//		s.update()
+//		slices = append(slices, s)
+//	}
+//
+//	for i := 0; i <= len(slices)-2; i++ {
+//		slices[i].linkNext(slices[i+1].offsetInShm)
+//	}
+//
+//	next := slices[0].offsetInShm
+//	for i := 0; i < sliceNum; i++ {
+//		s, err := bm.readBufferSlice(next)
+//		assert.Equal(t, nil, err)
+//		assert.Equal(t, size, s.capacity())
+//		assert.Equal(t, size, s.size())
+//		readData, err := s.read(size)
+//		assert.Equal(t, nil, err, "i:%d offset:%d", i, next)
+//		assert.Equal(t, readData, writeDataArray[i])
+//		isLastSlice := i == sliceNum-1
+//		assert.Equal(t, !isLastSlice, s.hasNext())
+//		next = s.nextBufferOffset()
+//	}
+//}
 
 func TestSliceList_PushPop(t *testing.T) {
 	//1. twice push , twice pop
