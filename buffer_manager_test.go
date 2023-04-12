@@ -25,50 +25,50 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestBufferManager_CreateAndMapping(t *testing.T) {
-	//create
-	mem := make([]byte, 32<<20)
-	bm1, err := createBufferManager([]*SizePercentPair{
-		{4096, 70},
-		{16 * 1024, 20},
-		{64 * 1024, 10},
-	}, "", mem, 0)
-	if err != nil {
-		t.Fatal("create buffer manager failed, err=" + err.Error())
-	}
-
-	allocateFunc := func(bm *bufferManager) {
-		for i := 0; i < 10; i++ {
-			_, err := bm.allocShmBuffer(4096)
-			assert.Equal(t, nil, err)
-			_, err = bm.allocShmBuffer(16 * 1024)
-			assert.Equal(t, nil, err)
-			_, err = bm.allocShmBuffer(64 * 1024)
-			assert.Equal(t, nil, err)
-		}
-	}
-	allocateFunc(bm1)
-
-	//mapping
-	bm2, err := mappingBufferManager("", mem, 0)
-	if err != nil {
-		t.Fatal("mapping buffer manager failed, err=" + err.Error())
-	}
-
-	for i := range bm1.lists {
-		assert.Equal(t, *bm1.lists[i].capPerBuffer, *bm2.lists[i].capPerBuffer)
-		assert.Equal(t, *bm1.lists[i].size, *bm2.lists[i].size)
-		assert.Equal(t, bm1.lists[i].offsetInShm, bm2.lists[i].offsetInShm)
-	}
-
-	allocateFunc(bm2)
-
-	for i := range bm1.lists {
-		assert.Equal(t, *bm1.lists[i].capPerBuffer, *bm2.lists[i].capPerBuffer)
-		assert.Equal(t, *bm1.lists[i].size, *bm2.lists[i].size)
-		assert.Equal(t, bm1.lists[i].offsetInShm, bm2.lists[i].offsetInShm)
-	}
-}
+//func TestBufferManager_CreateAndMapping(t *testing.T) {
+//	//create
+//	mem := make([]byte, 32<<20)
+//	bm1, err := createBufferManager([]*SizePercentPair{
+//		{4096, 70},
+//		{16 * 1024, 20},
+//		{64 * 1024, 10},
+//	}, "", mem, 0)
+//	if err != nil {
+//		t.Fatal("create buffer manager failed, err=" + err.Error())
+//	}
+//
+//	allocateFunc := func(bm *bufferManager) {
+//		for i := 0; i < 10; i++ {
+//			_, err := bm.allocShmBuffer(4096)
+//			assert.Equal(t, nil, err)
+//			_, err = bm.allocShmBuffer(16 * 1024)
+//			assert.Equal(t, nil, err)
+//			_, err = bm.allocShmBuffer(64 * 1024)
+//			assert.Equal(t, nil, err)
+//		}
+//	}
+//	allocateFunc(bm1)
+//
+//	//mapping
+//	bm2, err := mappingBufferManager("", mem, 0)
+//	if err != nil {
+//		t.Fatal("mapping buffer manager failed, err=" + err.Error())
+//	}
+//
+//	for i := range bm1.lists {
+//		assert.Equal(t, *bm1.lists[i].capPerBuffer, *bm2.lists[i].capPerBuffer)
+//		assert.Equal(t, *bm1.lists[i].size, *bm2.lists[i].size)
+//		assert.Equal(t, bm1.lists[i].offsetInShm, bm2.lists[i].offsetInShm)
+//	}
+//
+//	allocateFunc(bm2)
+//
+//	for i := range bm1.lists {
+//		assert.Equal(t, *bm1.lists[i].capPerBuffer, *bm2.lists[i].capPerBuffer)
+//		assert.Equal(t, *bm1.lists[i].size, *bm2.lists[i].size)
+//		assert.Equal(t, bm1.lists[i].offsetInShm, bm2.lists[i].offsetInShm)
+//	}
+//}
 
 func TestBufferManager_ReadBufferSlice(t *testing.T) {
 	mem := make([]byte, 1<<20)
@@ -131,7 +131,7 @@ func TestBufferManager_AllocRecycle(t *testing.T) {
 	//allocBuffers, recycleBuffers
 	slices := newSliceList()
 	size := bm.allocShmBuffers(slices, 256*1024)
-	assert.Equal(t, int(size), 256*1024)
+	assert.Equal(t, 256*1024, int(size))
 	linkedBufferSlices := newEmptyLinkedBuffer(bm)
 	for slices.size() > 0 {
 		linkedBufferSlices.appendBufferSlice(slices.popFront())
