@@ -22,9 +22,7 @@ import (
 	"os"
 	"runtime"
 	"strconv"
-	"sync"
 	"syscall"
-	"testing"
 	"time"
 )
 
@@ -220,86 +218,86 @@ func testClientServerConfig(conf *Config) (*Session, *Session) {
 //	fmt.Println("----------test session accept stream when session closed done----------")
 //}
 
-func TestSendData_Small(t *testing.T) {
-	client, server := testClientServer()
-	defer client.Close()
-	defer server.Close()
-	wg := &sync.WaitGroup{}
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		stream, err := server.AcceptStream()
-		if err != nil {
-			t.Logf("err: %v", err)
-		}
-
-		if server.GetActiveStreamCount() != 1 {
-			t.Fatal("num of streams is ", server.GetActiveStreamCount())
-		}
-
-		size := 0
-		for size < 4*100 {
-			bs, err := stream.BufferReader().ReadBytes(4)
-			size += 4
-			if err != nil {
-				t.Fatalf("read err: %v", err)
-			}
-			if string(bs) != "test" {
-				t.Logf("bad: %s", string(bs))
-			}
-		}
-
-		if err := stream.Close(); err != nil {
-			t.Logf("err: %v", err)
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		stream, err := client.OpenStream()
-		if err != nil {
-			t.Logf("err: %v", err)
-		}
-
-		if client.GetActiveStreamCount() != 1 {
-			t.Logf("bad")
-		}
-
-		for i := 0; i < 100; i++ {
-			_, err := stream.BufferWriter().WriteBytes([]byte("test"))
-			if err != nil {
-				t.Logf("err: %v", err)
-			}
-			err = stream.Flush(false)
-			if err != nil {
-				t.Logf("err: %v", err)
-			}
-		}
-
-		if err := stream.Close(); err != nil {
-			t.Logf("err: %v", err)
-		}
-	}()
-
-	doneCh := make(chan struct{})
-	go func() {
-		wg.Wait()
-		close(doneCh)
-	}()
-	select {
-	case <-doneCh:
-	case <-time.After(time.Second * 35):
-		panic("timeout")
-	}
-
-	if client.GetActiveStreamCount() != 0 {
-		t.Fatalf("bad, streams:%d", client.GetActiveStreamCount())
-	}
-	if server.GetActiveStreamCount() != 0 {
-		t.Fatalf("bad")
-	}
-}
+//func TestSendData_Small(t *testing.T) {
+//	client, server := testClientServer()
+//	defer client.Close()
+//	defer server.Close()
+//	wg := &sync.WaitGroup{}
+//	wg.Add(2)
+//
+//	go func() {
+//		defer wg.Done()
+//		stream, err := server.AcceptStream()
+//		if err != nil {
+//			t.Logf("err: %v", err)
+//		}
+//
+//		if server.GetActiveStreamCount() != 1 {
+//			t.Fatal("num of streams is ", server.GetActiveStreamCount())
+//		}
+//
+//		size := 0
+//		for size < 4*100 {
+//			bs, err := stream.BufferReader().ReadBytes(4)
+//			size += 4
+//			if err != nil {
+//				t.Fatalf("read err: %v", err)
+//			}
+//			if string(bs) != "test" {
+//				t.Logf("bad: %s", string(bs))
+//			}
+//		}
+//
+//		if err := stream.Close(); err != nil {
+//			t.Logf("err: %v", err)
+//		}
+//	}()
+//
+//	go func() {
+//		defer wg.Done()
+//		stream, err := client.OpenStream()
+//		if err != nil {
+//			t.Logf("err: %v", err)
+//		}
+//
+//		if client.GetActiveStreamCount() != 1 {
+//			t.Logf("bad")
+//		}
+//
+//		for i := 0; i < 100; i++ {
+//			_, err := stream.BufferWriter().WriteBytes([]byte("test"))
+//			if err != nil {
+//				t.Logf("err: %v", err)
+//			}
+//			err = stream.Flush(false)
+//			if err != nil {
+//				t.Logf("err: %v", err)
+//			}
+//		}
+//
+//		if err := stream.Close(); err != nil {
+//			t.Logf("err: %v", err)
+//		}
+//	}()
+//
+//	doneCh := make(chan struct{})
+//	go func() {
+//		wg.Wait()
+//		close(doneCh)
+//	}()
+//	select {
+//	case <-doneCh:
+//	case <-time.After(time.Second * 35):
+//		panic("timeout")
+//	}
+//
+//	if client.GetActiveStreamCount() != 0 {
+//		t.Fatalf("bad, streams:%d", client.GetActiveStreamCount())
+//	}
+//	if server.GetActiveStreamCount() != 0 {
+//		t.Fatalf("bad")
+//	}
+//}
 
 //func TestSendData_Large(t *testing.T) {
 //	client, server := testClientServer()

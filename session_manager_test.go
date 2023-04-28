@@ -210,6 +210,7 @@ func TestSM_NewClientSession(t *testing.T) {
 		}
 		defer stream.Close()
 		buf := stream.BufferReader()
+		// 从buufer 当中读取出来的数据
 		reqData, err := buf.ReadBytes(mockDataLen)
 		if err != nil {
 			panic("readBuf failed" + err.Error())
