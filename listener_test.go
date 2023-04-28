@@ -62,6 +62,7 @@ func (s streamCbImpl) OnData(reader BufferReader) {
 	}
 
 	if ret == firstMsg {
+		// note 这个测试的覆盖范围其实已经很广了
 		fmt.Println("old server recv msg")
 		_ = s.stream.BufferWriter().WriteString(ret)
 		s.stream.Flush(false)

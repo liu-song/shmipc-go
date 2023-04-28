@@ -344,7 +344,9 @@ func (l *linkedBuffer) ReadBytes(size int) (result []byte, err error) {
 		}
 		size -= len(readData)
 	}
+	// 这里备注下，等待注释
 	return
+
 }
 
 func (l *linkedBuffer) ReadString(size int) (string, error) {

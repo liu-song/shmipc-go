@@ -1,3 +1,4 @@
+//go:build !race
 // +build !race
 
 /*
@@ -74,7 +75,7 @@ func (c *connEventHandler) onRemoteClose() {
 	c.deferredClose()
 }
 
-//avoiding write concurrently, blocking until return
+// avoiding write concurrently, blocking until return
 func (c *connEventHandler) writev(data ...[]byte) error {
 	if len(data) == 0 {
 		return nil
@@ -135,7 +136,7 @@ func (c *connEventHandler) doWritev(data ...[]byte) (int, error) {
 	return writtenSliceNum, nil
 }
 
-//avoiding write concurrently, blocking until return
+// avoiding write concurrently, blocking until return
 func (c *connEventHandler) write(data []byte) error {
 	written, size := 0, len(data)
 	for written < size {
@@ -339,7 +340,7 @@ func (d *epollDispatcher) runLoop() error {
 			d.lock.Lock()
 			for i := 0; i < n; i++ {
 				var h *connEventHandler = *(**connEventHandler)(unsafe.Pointer(&events[i].data))
-				h.handleEvent(int(events[i].events), d)
+				h.handleEvent(int(events[i].events), d) // 这个断点是可以一直打下去的。到 fillDataToReadBuffer 这里。
 			}
 			d.lock.Unlock()
 			d.runLambda()
