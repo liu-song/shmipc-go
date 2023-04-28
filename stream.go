@@ -386,6 +386,7 @@ func (s *Stream) ReleaseReadAndReuse() {
 }
 
 // fillDataToReadBuffer is used to handle a data frame
+// 能够比较精确的划分出每个函数并不简单，用来测试每个函数的具体的情况。
 func (s *Stream) fillDataToReadBuffer(buf bufferSliceWrapper) error {
 	s.pendingData.add(buf)
 	//stream had closed, which maybe closed by user due to timeout.
