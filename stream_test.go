@@ -505,7 +505,16 @@ func TestStream_fillDataToReadBuffer(t *testing.T) {
 	assert.Equal(t, 0, len(stream.pendingData.unread))
 	assert.Equal(t, nil, err)
 
-	//TODO: fillDataToReadBuffer 53.3%
+	stream, _ = client.OpenStream()
+	data := make([]byte, size)
+	rand.Read(data)
+	slice = newBufferSlice(nil, data, 0, false)
+	err = stream.fillDataToReadBuffer(bufferSliceWrapper{fallbackSlice: slice})
+	assert.Equal(t, 1, len(stream.pendingData.unread))
+	stream.Close()
+	err = stream.fillDataToReadBuffer(bufferSliceWrapper{fallbackSlice: slice})
+	assert.Equal(t, 0, len(stream.pendingData.unread))
+	assert.Equal(t, nil, err)
 
 }
 
