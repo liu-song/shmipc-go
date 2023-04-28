@@ -312,6 +312,7 @@ func (l *linkedBuffer) ReadByte() (byte, error) {
 	return r[0], nil
 }
 
+// 通过buffer 读取出来的数据
 func (l *linkedBuffer) ReadBytes(size int) (result []byte, err error) {
 	if size <= 0 {
 		return

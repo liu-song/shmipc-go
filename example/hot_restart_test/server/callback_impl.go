@@ -32,6 +32,8 @@ type listenCbImpl struct{}
 
 func (l listenCbImpl) OnNewStream(s *shmipc.Stream) {
 	//fmt.Printf("OnNewStream StreamID %d\n", s.StreamID())
+
+	// 只有这里 setcallback 之后才可以继续拧 getcallback 的时候不为空
 	if err := s.SetCallbacks(streamCbImpl{stream: s}); err != nil {
 		fmt.Printf("OnNewStream SetCallbacks error %+v\n", err)
 	}
@@ -45,6 +47,7 @@ type streamCbImpl struct {
 	stream *shmipc.Stream
 }
 
+// 异步回调的具体实现会去进一步处理data
 func (s streamCbImpl) OnData(reader shmipc.BufferReader) {
 	ret, err := reader.ReadString(len(sendStr))
 	if err != nil {

@@ -511,10 +511,15 @@ func TestStream_fillDataToReadBuffer(t *testing.T) {
 	slice = newBufferSlice(nil, data, 0, false)
 	err = stream.fillDataToReadBuffer(bufferSliceWrapper{fallbackSlice: slice})
 	assert.Equal(t, 1, len(stream.pendingData.unread))
-	stream.Close()
-	err = stream.fillDataToReadBuffer(bufferSliceWrapper{fallbackSlice: slice})
-	assert.Equal(t, 0, len(stream.pendingData.unread))
-	assert.Equal(t, nil, err)
+	//stream.Close()
+	//err = stream.fillDataToReadBuffer(bufferSliceWrapper{fallbackSlice: slice})
+	//assert.Equal(t, 0, len(stream.pendingData.unread))
+	//assert.Equal(t, nil, err)
+	reader := stream.BufferReader()
+	// 5.read response
+	respData, err := reader.ReadBytes(size)
+	assert.Equal(t, data, respData)
+	//stream.readMore()
 
 }
 

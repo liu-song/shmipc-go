@@ -108,8 +108,8 @@ func newStream(session *Session, id uint32) *Stream {
 	return s
 }
 
-//SetCallbacks used to set the StreamCallbacks.
-//Notice: It was just called only once, or return the error named ErrStreamCallbackHadExisted.
+// SetCallbacks used to set the StreamCallbacks.
+// Notice: It was just called only once, or return the error named ErrStreamCallbackHadExisted.
 func (s *Stream) SetCallbacks(callback StreamCallbacks) error {
 	if s.getCallbacks() != nil {
 		return ErrStreamCallbackHadExisted
@@ -135,6 +135,7 @@ func (s *Stream) StreamID() uint32 {
 func (s *Stream) readMore(minSize int) (err error) {
 	s.pendingData.moveTo(s.recvBuf)
 	recvLen := s.recvBuf.Len()
+	// 读取的长度够了，直接返回
 	if recvLen >= minSize {
 		return nil
 	}
@@ -270,8 +271,8 @@ func (s *Stream) writeFallback(streamStatus uint32, err error) error {
 	return s.session.waitForSend(nil, data)
 }
 
-//Close used to close the stream, which maybe block if there is StreamCallbacks running.
-//if a stream was leaked, it's also mean that some share memory was leaked.
+// Close used to close the stream, which maybe block if there is StreamCallbacks running.
+// if a stream was leaked, it's also mean that some share memory was leaked.
 func (s *Stream) Close() error {
 	if s.getCallbacks() != nil {
 		atomic.StoreUint32(&s.callbackCloseState, uint32(callbackWaitExit))
@@ -395,15 +396,18 @@ func (s *Stream) fillDataToReadBuffer(buf bufferSliceWrapper) error {
 	}
 	// Unblock any readers
 	asyncNotify(s.recvNotifyCh)
-	callback := s.getCallbacks()
+
+	callback := s.getCallbacks() // 如果没有 setCallback 这里始终将会为空。
 	if callback != nil {
 		// callback OnData maybe block, make sure OnData called once and chan recvNotifyCh be notified
+		// 是否是在处理回调？
 		if atomic.CompareAndSwapUint32(&s.callbackInProcess, 0, 1) {
 			s.asyncGoroutineWg.Add(1)
 			gopool.Go(func() {
 				for {
 					s.pendingData.moveTo(s.recvBuf)
 					for s.IsOpen() && s.recvBuf.Len() > 0 {
+						//
 						callback.OnData(s.recvBuf)
 						s.pendingData.moveTo(s.recvBuf)
 					}
@@ -446,7 +450,7 @@ func (s *Stream) SetWriteDeadline(t time.Time) error {
 	return nil
 }
 
-//IsOpen return whether the stream is open
+// IsOpen return whether the stream is open
 func (s *Stream) IsOpen() bool {
 	return atomic.LoadUint32(&s.state) == uint32(streamOpened)
 }
@@ -539,14 +543,14 @@ func (s *Stream) getCallbacks() StreamCallbacks {
 	return nil
 }
 
-//Low performance api, it just adapt to the interface net.Conn, which will copy data from read buffer to `p`
-//please use BufferReader() API to implement zero copy read
+// Low performance api, it just adapt to the interface net.Conn, which will copy data from read buffer to `p`
+// please use BufferReader() API to implement zero copy read
 func (s *Stream) Read(p []byte) (int, error) {
 	return s.copyRead(p)
 }
 
-//Low performance api, it just adapt to the interface net.Conn, which will do copy data from `p` to write buffer
-//please use BufferWriter() API to implement zero copy write
+// Low performance api, it just adapt to the interface net.Conn, which will do copy data from `p` to write buffer
+// please use BufferWriter() API to implement zero copy write
 func (s *Stream) Write(p []byte) (int, error) {
 	return s.copyWriteAndFlush(p)
 }
