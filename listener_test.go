@@ -66,7 +66,17 @@ func (s streamCbImpl) OnData(reader BufferReader) {
 		fmt.Println("old server recv msg")
 		_ = s.stream.BufferWriter().WriteString(ret)
 		s.stream.Flush(false)
+		SetLogLevel(levelTrace)
+
+		internalLogger.infof("stream.recvBuf", s.stream.recvBuf.pinnedList.size(), s.stream.recvBuf.Len())
+
+		internalLogger.infof("stream.recvBuf", s.stream.sendBuf.pinnedList.size(), s.stream.sendBuf.Len())
+
 		s.stream.ReleaseReadAndReuse()
+
+		internalLogger.infof("stream.recvBuf", s.stream.recvBuf.pinnedList.size(), s.stream.recvBuf.Len())
+
+		internalLogger.infof("stream.recvBuf", s.stream.sendBuf.pinnedList.size(), s.stream.sendBuf.Len())
 
 		firstMsgDone <- struct{}{}
 	}
