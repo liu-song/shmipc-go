@@ -75,6 +75,7 @@ func (s streamCbImpl) OnData(reader BufferReader) {
 		fmt.Println("new server recv msg")
 		_ = s.stream.BufferWriter().WriteString(ret)
 		s.stream.Flush(false)
+		// 测试这个函数可以直接等待在这里，看等待了多久。
 		s.stream.ReleaseReadAndReuse()
 
 		secondMsgDone <- struct{}{}

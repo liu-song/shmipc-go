@@ -530,10 +530,51 @@ func TestStream_fillDataToReadBuffer(t *testing.T) {
 
 }
 
-// TODO: SwapBufferForReuse              66.7%
-func TestStream_SwapBufferForReuse(t *testing.T) {
-
-}
+//// TODO: SwapBufferForReuse              66.7%
+//func TestStream_ReleaseReadAndReuse(t *testing.T) {
+//	// Create a new stream with some data in the receive buffer.
+//	//recvBuf := linkedBuffer()
+//	//recvBuf.Write([]byte("hello"))
+//	conf := testConf()
+//	client, server := testClientServerConfig(conf)
+//	defer client.Close()
+//	defer server.Close()
+//
+//	stream, _ := client.OpenStream()
+//	stream
+//
+//	// Call ReleaseReadAndReuse to release the read buffer and swap the send and receive buffers.
+//	//stream.ReleaseReadAndReuse()
+//
+//	// The receive buffer should now be empty.
+//	if stream.recvBuf.Len() != 0 {
+//		t.Errorf("expected recvBuf.Len() == 0, but got %d", stream.recvBuf.Len())
+//	}
+//
+//	// The send buffer should now contain the data that was previously in the receive buffer.
+//	expectedSendBuf := []byte("hello")
+//	actualSendBuf := make([]byte, len(expectedSendBuf))
+//	stream.sendBuf.Read(actualSendBuf)
+//	if !bytes.Equal(actualSendBuf, expectedSendBuf) {
+//		t.Errorf("expected sendBuf == %q, but got %q", expectedSendBuf, actualSendBuf)
+//	}
+//
+//	// Call ReleaseReadAndReuse again to release the read buffer and swap the send and receive buffers again.
+//	stream.ReleaseReadAndReuse()
+//
+//	// The receive buffer should still be empty.
+//	if stream.recvBuf.Len() != 0 {
+//		t.Errorf("expected recvBuf.Len() == 0, but got %d", stream.recvBuf.Len())
+//	}
+//
+//	// The send buffer should still be the same.
+//	expectedSendBuf = []byte("hello")
+//	actualSendBuf = make([]byte, len(expectedSendBuf))
+//	stream.sendBuf.Read(actualSendBuf)
+//	if !bytes.Equal(actualSendBuf, expectedSendBuf) {
+//		t.Errorf("expected sendBuf == %q, but got %q", expectedSendBuf, actualSendBuf)
+//	}
+//}
 
 /*
 TODO

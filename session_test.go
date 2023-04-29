@@ -37,6 +37,7 @@ func testUdsConn() (client *net.UnixConn, server *net.UnixConn) {
 	notifyCh := make(chan struct{})
 	go func() {
 		defer func() {
+			// 退出的时候，确实是关闭了这个ipc 的地址
 			_ = syscall.Unlink(udsPath)
 		}()
 		ln, err := net.ListenUnix("unix", addr)
