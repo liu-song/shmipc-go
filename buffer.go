@@ -91,8 +91,12 @@ type linkedBuffer struct {
 	stream        *Stream
 	// Already read slices dropped by ReadBytes will be saved here instead of recycled instantly.
 	// Slices inside be recycled when ReleasePreviousRead is called.
+	// note
+	//已被ReadBytes读取的切片将保存在此处，而不是立即回收。
+	//ReleasePreviousRead被调用时，其中的切片将被回收。
 	pinnedList *sliceList
 	// if sliceList.Front() is pinned(initialized with false, be turned to true when ReadByte and Peek)
+	// 如果sliceList.Front()被固定（初始化为false，当ReadByte和Peek时变为true）
 	currentPinned bool
 	endStream     bool
 	isFromShm     bool
@@ -453,6 +457,7 @@ func (l *linkedBuffer) ReleasePreviousRead() {
 	}
 
 	if l.sliceList.front().size() == 0 && l.sliceList.front() == l.sliceList.writeSlice {
+		// 重新循环使用
 		l.bufferManager.recycleBuffer(l.sliceList.popFront())
 		l.sliceList.writeSlice = nil
 	}
@@ -462,6 +467,8 @@ func (l *linkedBuffer) releasePreviousReadAndReserve() {
 	l.cleanPinnedList()
 	//try reserve a buffer slice  in long-stream mode for improving performance.
 	//we could use read buffer as next write buffer, to avoiding share memory allocate and recycle.
+	// 在长流模式下尝试保留一个缓冲切片以提高性能。
+	// 我们可以将读取缓冲区用作下一个写入缓冲区，以避免共享内存分配和回收。
 	if l.len == 0 && l.sliceList.size() == 1 {
 		if l.sliceList.front().isFromShm {
 			l.sliceList.front().reset()

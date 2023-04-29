@@ -98,6 +98,12 @@ func SetLogLevel(l int) {
 	}
 }
 
+func Getlog() *logger {
+	return gLog
+}
+
+var gLog = newLogger("test", nil)
+
 func newLogger(name string, out io.Writer) *logger {
 	if out == nil {
 		out = os.Stdout

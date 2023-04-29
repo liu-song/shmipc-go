@@ -91,6 +91,9 @@ func TestLinkedBuffer_ReleasePreviousRead(t *testing.T) {
 	assert.Equal(t, (sliceNum/2)-1, buf.pinnedList.size())
 	_, _ = buf.Discard(buf.Len())
 
+	internalLogger.infof("buffer的pinned", buf.pinnedList.size(), buf.Len())
+
+	// 在这里其实已经被 release and  readReserve了
 	buf.releasePreviousReadAndReserve()
 	assert.Equal(t, 0, buf.pinnedList.size())
 	assert.Equal(t, 0, buf.Len())

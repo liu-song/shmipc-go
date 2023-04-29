@@ -32,6 +32,7 @@ var (
 type bufferHeader []byte
 
 type bufferSlice struct {
+	// 具体的定义
 	//bufferHeader layout: cap 4 byte | size 4 byte | start 4 byte | next 4 byte | flag 2 byte
 	bufferHeader
 	data []byte

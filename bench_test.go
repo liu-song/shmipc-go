@@ -159,6 +159,7 @@ func mustWrite(s *Stream, size int, b *testing.B) {
 }
 
 func mustRead(s *Stream, size int, b *testing.B) bool {
+	// mustRead 为什么需要discard
 	n, err := s.BufferReader().Discard(size)
 	if err == ErrStreamClosed || err == ErrEndOfStream {
 		return false
