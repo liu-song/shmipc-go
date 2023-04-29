@@ -72,6 +72,7 @@ func TestLinkedBuffer_ReadWrite(t *testing.T) {
 
 func TestLinkedBuffer_ReleasePreviousRead(t *testing.T) {
 	initShm()
+	SetLogLevel(levelTrace)
 	slice, err := bm.allocShmBuffer(1024)
 	if err != nil {
 		t.Fatal(err)
