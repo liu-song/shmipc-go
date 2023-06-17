@@ -126,5 +126,5 @@ func main() {
 		}()
 	}
 
-	time.Sleep(1200 * time.Second)
+	time.Sleep(1200 * time.Hour)
 }
