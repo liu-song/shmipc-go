@@ -59,6 +59,7 @@ func newLinkedBufferWithSlice(manager *bufferManager, slice *bufferSlice) *linke
 
 func TestLinkedBuffer_ReadWrite(t *testing.T) {
 	initShm()
+	// 测试这里是个factory
 	factory := func() *linkedBuffer {
 		buf, err := bm.allocShmBuffer(1024)
 		if err != nil {
@@ -90,7 +91,7 @@ func TestLinkedBuffer_ReleasePreviousRead(t *testing.T) {
 		assert.Equal(t, nil, err)
 	}
 	assert.Equal(t, (sliceNum/2)-1, buf.pinnedList.size())
-	_, _ = buf.Discard(buf.Len())
+	_, _ = buf.Discard(buf.Len()) // 弄清楚这个两个被调用的上层，就可以进行下去了
 
 	internalLogger.infof("buffer的pinned", buf.pinnedList.size(), buf.Len())
 	assert.Equal(t, 0, buf.pinnedList.size())
@@ -164,6 +165,7 @@ func testBufferReadString(t *testing.T, createBufferWriter func() *linkedBuffer)
 }
 
 // TODO: ensure reserving logic
+// 确认其中的修复逻辑。
 func TestLinkedBuffer_Reserve(t *testing.T) {
 	initShm()
 
@@ -227,7 +229,7 @@ func TestLinkedBuffer_Done(t *testing.T) {
 
 	// write data to full 2 slice, remove one
 	_, _ = buffer.WriteBytes(mockData)
-	reader := buffer.done(true)
+	reader := buffer.done(true) // 从done了之后，获得reader
 	assert.Equal(t, 2, buffer.sliceList.size())
 	getBytes, _ := reader.ReadBytes(mockDataSize)
 	assert.Equal(t, mockData, getBytes)

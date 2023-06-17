@@ -30,7 +30,7 @@ import (
 )
 
 const (
-	//cap 4 + size 4 + start 4 + next 4 + flag 1
+	//cap 4 + size 4 + start 4 + next 4 + flag 1   // 这个flag 有进行添加了吗
 	bufferHeaderSize      = 4 + 4 + 4 + 4 + 4
 	bufferCapOffset       = 0
 	bufferSizeOffset      = bufferCapOffset + 4
@@ -51,6 +51,7 @@ const (
 )
 
 var (
+	// 全局唯一的统计
 	bufferManagers = &globalBufferManager{
 		bms: make(map[string]*bufferManager, 8),
 	}
@@ -58,8 +59,10 @@ var (
 
 // todo mmap interface ?
 // bufferManager's layout in share memory: listSize 2 byte | bufferList  n byte
+// 管理所有的bufferList
 type bufferManager struct {
 	//ascending ordered by list.capPerBuffer
+	// bufferManager 管理 Lists
 	lists        []*bufferList
 	mem          []byte
 	minSliceSize uint32
@@ -75,9 +78,16 @@ type globalBufferManager struct {
 	bms map[string]*bufferManager
 }
 
-// bufferList's layout in share memory: size 4 byte | cap 4 byte | head 4 byte | tail 4 byte | capPerBuffer 4 byte | bufferRegion n bye
+// bufferList's layout in share memory: size 4 byte | cap 4 byte | head 4 byte | tail 4 byte | capPerBuffer 4 byte | bufferRegion n byte
 // thead safe, lock free. support push && pop concurrently even cross different process.
+// 这段代码中的 bufferList 是一个消息队列的数据结构，它被存储在共享内存中。它的布局是这样的：前 4 个字节存储队列当前的大小
+// ，接下来的 4 个字节存储队列的容量，再接下来的 4 个字节存储队列头部的索引，后面的 4 个字节存储队列尾部的索引，再接下来的 4 个字节存储每个缓冲区的容量，
+// 最后是一个长度为 n 的缓冲区数据区域。
+// 这个消息队列是线程安全的，不需要使用锁来保护。它支持并发地推入和弹出消息，甚至可以跨不同的进程。
+// 这意味着可以在多个进程中使用这个消息队列，而不需要担心数据竞争的问题。
+
 type bufferList struct {
+	// bufferList   ==> bufferSlice   // List 管理  Slice ，pop 和push 的方式
 	// the number of free buffer
 	size *int32
 	//the max size of list
@@ -425,7 +435,7 @@ func (b *bufferList) pop() (*bufferSlice, error) {
 		atomic.AddInt32(b.size, 1)
 		return nil, ErrNoMoreBuffer
 	}
-	//when data races occurred, max retry 200 times.
+	//when data races occurred, max retry 200 times.// 最多重试20次
 	for i := 0; i < 200; i++ {
 		bh := bufferHeader(b.bufferRegion[oldHead : oldHead+bufferHeaderSize])
 		if bh.hasNext() {
@@ -483,6 +493,7 @@ func (b *bufferManager) remainSize() uint32 {
 }
 
 // alloc single buffer slice , whose performance better than allocShmBuffers.
+// 进行分配内存,返回适合的大小
 func (b *bufferManager) allocShmBuffer(size uint32) (*bufferSlice, error) {
 	if size <= b.maxSliceSize {
 		for i := range b.lists {
@@ -498,6 +509,7 @@ func (b *bufferManager) allocShmBuffer(size uint32) (*bufferSlice, error) {
 	return nil, ErrNoMoreBuffer
 }
 
+// note 从指定的slices 当中进行分配
 func (b *bufferManager) allocShmBuffers(slices *sliceList, size uint32) (allocSize int64) {
 	remain := int64(size)
 	for i := len(b.lists) - 1; i >= 0 && remain > 0; i-- {
@@ -515,6 +527,7 @@ func (b *bufferManager) allocShmBuffers(slices *sliceList, size uint32) (allocSi
 	return allocSize
 }
 
+// 循环利用buffer, 对内存的管理其实实现的很灵活，很好
 func (b *bufferManager) recycleBuffer(slice *bufferSlice) {
 	if slice == nil {
 		return
@@ -553,6 +566,7 @@ func (b *bufferManager) recycleBuffers(slice *bufferSlice) {
 	}
 }
 
+// 遍历 list 获得所有的大小
 func (b *bufferManager) sliceSize() (size int) {
 	for i := range b.lists {
 		size += int(*b.lists[i].size)
@@ -571,9 +585,11 @@ func (b *bufferManager) readBufferSlice(offset uint32) (*bufferSlice, error) {
 		return nil, fmt.Errorf("broken share memory. readBufferSlice unexpected bufferEndOffset:%d. bufferStartOffset:%d buffers cap:%d",
 			bufEndOffset, offset, len(b.mem))
 	}
+	// 从buufer sllice当中获得待分配的内存
 	return newBufferSlice(b.mem[offset:offset+bufferHeaderSize], b.mem[offset+bufferHeaderSize:bufEndOffset], offset, true), nil
 }
 
+// 通过Munmap 当中 释放内存
 func (b *bufferManager) unmap() {
 	// spin 5s to check if all buffer are returned, if timeout, we still force unmap TODO: ?
 	for i := 0; i < 50; i++ {

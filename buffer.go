@@ -28,6 +28,8 @@ var (
 	_ BufferReader = &linkedBuffer{}
 )
 
+// note linkedBuffer构建在stream之上
+// 实现了 BufferWriter 和  BufferReader  这两个接口
 // BufferWriter used to write data to stream.
 type BufferWriter interface {
 	//Len() return the current wrote size of buffer.
@@ -78,6 +80,7 @@ type BufferReader interface {
 	ReadString(size int) (string, error)
 }
 
+// lindedBuffer ==> sliceList ==> bufferSlice
 type linkedBuffer struct {
 	/* linkBuffer'recycle() will hold this lock.
 	in most scenario(99.999..%), no competition on this mutex.
@@ -97,8 +100,8 @@ type linkedBuffer struct {
 	pinnedList *sliceList
 	// if sliceList.Front() is pinned(initialized with false, be turned to true when ReadByte and Peek)
 	// 如果sliceList.Front()被固定（初始化为false，当ReadByte和Peek时变为true）
-	currentPinned bool
-	endStream     bool
+	currentPinned bool // 当前是否是被规定操作
+	endStream     bool // 流是否被关闭了
 	isFromShm     bool
 	len           int
 }
@@ -222,11 +225,13 @@ func (l *linkedBuffer) WriteString(str string) error {
 	return err
 }
 
+// 清醒，对常规代码的感受能力
 func (l *linkedBuffer) recycle() {
 	l.recycleMux.Lock()
 	for l.sliceList.size() > 0 {
 		slice := l.sliceList.popFront()
 		if slice.isFromShm {
+			// 归还是从shm 里面获得的内存
 			l.bufferManager.recycleBuffer(slice)
 		} else {
 			putBackBufferSlice(slice)
@@ -240,6 +245,7 @@ func (l *linkedBuffer) rootBufOffset() uint32 {
 	return l.sliceList.front().offsetInShm
 }
 
+// 传入什么似乎并没有关系，最终返回的都是一个reader
 func (l *linkedBuffer) done(endStream bool) BufferReader {
 	_ = endStream
 	// todo endStream
@@ -444,6 +450,7 @@ func (l *linkedBuffer) cleanPinnedList() {
 		if slice.isFromShm {
 			l.bufferManager.recycleBuffer(slice)
 		} else {
+			// 归还对应的pool
 			putBackBufferSlice(slice)
 		}
 	}
@@ -541,6 +548,7 @@ func (l *linkedBuffer) clean() {
 	l.len = 0
 }
 
+// 将stream 和  linkedbuffer 建立起来
 func (l *linkedBuffer) bindStream(s *Stream) {
 	l.stream = s
 }

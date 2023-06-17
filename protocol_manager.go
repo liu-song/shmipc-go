@@ -105,6 +105,7 @@ func (p *protocolAdaptor) clientGetProtocolInitializer() (initializer protocolIn
 
 func (p *protocolAdaptor) serverGetProtocolInitializer() (protocolInitializer, error) {
 	//ensure version compatibility
+	// 阻塞读的事件头
 	h, err := blockReadEventHeader(p.session.connFd)
 	if err != nil {
 		return nil, err

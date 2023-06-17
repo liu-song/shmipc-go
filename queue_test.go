@@ -31,6 +31,7 @@ var (
 	parallelism = 100
 )
 
+// 这个实现基本比较完善了
 func TestQueueManager_CreateMapping(t *testing.T) {
 	path := "/tmp/ipc.queue"
 	qm1, err := createQueueManager(path, 8192)

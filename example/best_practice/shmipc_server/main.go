@@ -108,6 +108,7 @@ func main() {
 
 			// 3. create server session
 			conf := shmipc.DefaultConfig()
+			conf.Monitor = shmipc.NewPrometheusMonitor(":9095", "/metrics")
 			server, err := shmipc.Server(conn, conf)
 			if err != nil {
 				panic("new ipc server failed " + err.Error())

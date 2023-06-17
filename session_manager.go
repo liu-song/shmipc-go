@@ -81,6 +81,7 @@ type SessionManagerConfig struct {
 	StreamMaxIdleTime time.Duration
 }
 
+// 为什么需要池子呢
 type streamPool struct {
 	sync.Mutex
 	session  atomic.Value
@@ -170,12 +171,14 @@ func (sm *SessionManager) Close() error {
 // GetStream return a shmipc's Stream from stream pool.
 // Every stream should explicitly call PutBack() to return it to SessionManager for next time using,
 // otherwise it will cause resource leak.
+// note
 func (sm *SessionManager) GetStream() (*Stream, error) {
 	i := (atomic.AddUint64(&sm.count, 1) / sessionRoundRobinThreshold) % uint64(len(sm.pools))
 	return sm.pools[i].getOrOpenStream()
 }
 
 // PutBack is used to return unused stream to stream pool for next time using.
+// note 从池子里获取，
 func (sm *SessionManager) PutBack(stream *Stream) {
 	if stream != nil && stream.pool != nil {
 		stream.pool.putOrCloseStream(stream)

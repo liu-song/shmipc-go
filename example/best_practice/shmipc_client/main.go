@@ -71,6 +71,7 @@ func main() {
 	conf.MemMapType = shmipc.MemMapTypeMemFd
 	conf.SessionNum = 1
 	conf.InitializeTimeout = 100 * time.Second
+	conf.Monitor = shmipc.NewPrometheusMonitor(":9094", "/metrics")
 	smgr, err := shmipc.NewSessionManager(conf)
 	if err != nil {
 		panic(err)

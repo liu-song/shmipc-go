@@ -11,6 +11,8 @@ In IO-intensive and large-package scenarios, it has a better performance.
 
 ## Features
 
+## 去思考和kafka类似的地方，都是采用这些特性，零拷贝，和 批量的操作 
+
 ### Zero copy
 
 In an industrial production environment, the unix domain socket and tcp loopback are often used in inter-process communication.The read operation or the write operation need copy data between user space buffer and kernel space buffer.But shmipc directly store data to the share memory, so no copy compared to the former.

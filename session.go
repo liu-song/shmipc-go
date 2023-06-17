@@ -386,6 +386,7 @@ func (s *Session) waitForSend(hdr header, body []byte) error {
 // waitForSendErr waits to send a header with optional data, checking for a
 // potential shutdown. Since there's the expectation that sends can happen
 // in a timely manner, we enforce the connection write timeout here.
+// 只被调用一次，
 func (s *Session) waitForSendErr(hdr header, body []byte, errCh chan error) error {
 	t := timerPool.Get()
 	timer := t.(*time.Timer)
@@ -611,9 +612,11 @@ func (s *Session) onStreamClose(id uint32, state streamState) {
 
 func (s *Session) wakeUpPeer() error {
 	if !s.queueManager.sendQueue.markWorking() {
+		// 如果在工作，就是唤醒状态，不需要再进行唤醒
 		return nil
 	}
 	atomic.AddUint64(&s.stats.sendPollingEventCount, 1)
+	// 正在写，可以直接发送数据
 	if atomic.CompareAndSwapUint32(&s.writing, 0, 1) {
 		//fast path
 		s.writeEventData(pollingEventWithVersion[s.communicationVersion], nil)
@@ -626,6 +629,7 @@ func (s *Session) wakeUpPeer() error {
 	return nil
 }
 
+// 发送队列
 func (s *Session) sendQueue() *queue {
 	return s.queueManager.sendQueue
 }
@@ -670,6 +674,7 @@ func (s *Session) initMemManager() error {
 	return nil
 }
 
+// 提取 ShmMeta 中的数据 ，测试函数可以看下提取的是什么
 func (s *Session) extractShmMetadata(body []byte) (bufferPath string, queuePath string) {
 	offset := 0
 	queuePathLen := int(binary.BigEndian.Uint16(body[0:2]))
@@ -683,6 +688,7 @@ func (s *Session) extractShmMetadata(body []byte) (bufferPath string, queuePath 
 	return
 }
 
+// 热更的测试函数
 func (s *Session) hotRestart(epoch uint64, event eventType) error {
 	s.logger.warnf("%s [epoch:%d] begin hotRestart event type %d %s", s.name, epoch, event, event.String())
 	if event != typeHotRestart && event != typeHotRestartAck {

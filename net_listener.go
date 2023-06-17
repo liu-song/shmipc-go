@@ -49,8 +49,6 @@ func newListener(rawListener net.Listener, backlog int) *listener {
 	return listener
 }
 
-// accept connection from the raw listener in loop,
-// spawn another goroutine to create session with the connection, save it, and then accept streams from the session.
 func (l *listener) listenLoop() {
 	for {
 		conn, err := l.listener.Accept()
@@ -94,6 +92,7 @@ func (l *listener) listenLoop() {
 			}()
 
 			for {
+				// 流
 				stream, err := session.AcceptStream()
 				if err != nil {
 					if err != ErrSessionShutdown {
@@ -111,6 +110,7 @@ func (l *listener) listenLoop() {
 					return
 				}
 				internalLogger.info("accepted a new stream")
+				// 传入 stream 和 wg 来进行管理
 				conn := newStreamWrapper(stream, stream.LocalAddr(), stream.RemoteAddr(), wg)
 				select {
 				case <-l.closeCh:
@@ -132,9 +132,6 @@ func (l *listener) Accept() (net.Conn, error) {
 	}
 }
 
-// When listen closed, all sessions should be closed which otherwise would leak.
-// Because the underlying connection is closed, all streams will be closed too.
-// Note: The close behaviour here may differs from a normal connection.
 func (l *listener) Close() (err error) {
 	// mark closed and close the listener
 	swapped := atomic.CompareAndSwapUint32(&l.closed, 0, 1)
@@ -158,26 +155,10 @@ func (l *listener) Addr() net.Addr {
 	return l.listener.Addr()
 }
 
-// Listen create listener with default backlog size(4096)
-// shmIPCAddress is uds address used as underlying connection, the returned value is net.Listener
-// Remember close the listener if it is created successfully, or goroutine may leak
-// Should I use Listen?
-//  If you want the best performance, you should use low level API(not this one) to marshal and unmarshal manually,
-//  which can achieve better batch results.
-//  If you just care about the compatibility, you can use this high level API. For example, you can hardly change grpc
-//  and protobuf, then you can use this listener to make it compatible with a little bit improved performance.
 func Listen(shmIPCAddress string) (net.Listener, error) {
 	return ListenWithBacklog(shmIPCAddress, defaultBacklog)
 }
 
-// ListenWithBacklog create listener with given backlog size
-// shmIPCAddress is uds address used as underlying connection, the returned value is net.Listener
-// Remember close the listener if it is created successfully, or goroutine may leak
-// Should I use ListenWithBacklog?
-//  If you want the best performance, you should use low level API(not this one) to marshal and unmarshal manually,
-//  which can achieve better batch results.
-//  If you just care about the compatibility, you can use this high level API. For example, you can hardly change grpc
-//  and protobuf, then you can use this listener to make it compatible with a little bit improved performance.
 func ListenWithBacklog(shmIPCAddress string, backlog int) (net.Listener, error) {
 	rawListener, err := net.Listen("unix", shmIPCAddress)
 	if err != nil {

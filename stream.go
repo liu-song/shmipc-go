@@ -64,7 +64,7 @@ type Stream struct {
 
 	session *Session
 	pool    *streamPool
-
+	// 接受的队列
 	recvBuf     *linkedBuffer
 	sendBuf     *linkedBuffer
 	pendingData *pendingData
@@ -96,14 +96,14 @@ func newStream(session *Session, id uint32) *Stream {
 		id:            id,
 		session:       session,
 		state:         uint32(streamOpened),
-		recvBuf:       newEmptyLinkedBuffer(session.bufferManager),
-		sendBuf:       newEmptyLinkedBuffer(session.bufferManager),
-		pendingData:   new(pendingData),
+		recvBuf:       newEmptyLinkedBuffer(session.bufferManager), // 接受的buffer
+		sendBuf:       newEmptyLinkedBuffer(session.bufferManager), // 发送的buffer
+		pendingData:   new(pendingData),                            // 正在处理的数据
 		recvNotifyCh:  make(chan struct{}, 1),
 		closeNotifyCh: make(chan struct{}),
 	}
-	s.recvBuf.bindStream(s)
-	s.sendBuf.bindStream(s)
+	s.recvBuf.bindStream(s) // 将stream 和  linkedbuffer 建立起来
+	s.sendBuf.bindStream(s) // 将stream 和  linkedbuffer 建立起来
 	s.pendingData.stream = s
 	return s
 }
@@ -132,6 +132,8 @@ func (s *Stream) StreamID() uint32 {
 /* return underlying read buffer, whose'size >= minSize.
 * if current's size is not enough, which will block until the read buffer's size greater than minSize.
  */
+
+// 异步的模式   // 读取到的minSize 应该大于
 func (s *Stream) readMore(minSize int) (err error) {
 	s.pendingData.moveTo(s.recvBuf)
 	recvLen := s.recvBuf.Len()
@@ -163,6 +165,7 @@ func (s *Stream) readMore(minSize int) (err error) {
 			}
 		}
 	}()
+	// 阻塞等待其中的数据
 	for {
 		select {
 		case <-s.recvNotifyCh:
@@ -197,10 +200,13 @@ func (s *Stream) BufferReader() BufferReader {
 
 // Flush the buffered stream data to peer. If the endStream is true,
 // it mean that this stream hadn't send any data to peer after flush, and the peer could close stream after receive data
+// // 将缓冲的流数据刷新到对等端。如果 endStream 参数为 true，表示在刷新后该流尚未向对等端发送任何数据，
+// // 对等端在接收数据后可以关闭该流。
 func (s *Stream) Flush(endStream bool) error {
 	if s.sendBuf.Len() == 0 {
 		return nil
 	}
+	// note 统计字节的数量
 	atomic.AddUint64(&s.session.stats.outFlowBytes, uint64(s.sendBuf.Len()))
 	state := atomic.LoadUint32(&s.state)
 	if state != uint32(streamOpened) {
@@ -217,10 +223,11 @@ func (s *Stream) Flush(endStream bool) error {
 		return s.writeFallback(s.state, ErrNoMoreBuffer)
 	}
 	buf := s.sendBuf
-	// s.session.logger.tracef("stream:%d send buf, size:%d cap:%d offset:%d", s.id, buf.Len(), buf.Cap(),
-	// buf.rootBufOffset())
+	s.session.logger.tracef("stream:%d send buf, size:%d offset:%d", s.id, buf.Len(), buf.rootBufOffset())
+
+	// note 这里是流真正发送的地方吗
 	err := s.session.sendQueue().put(queueElement{
-		seqID:          s.id,
+		seqID:          s.id, // 确实是流的ID
 		offsetInShmBuf: buf.rootBufOffset(),
 		status:         state,
 	})
@@ -254,6 +261,7 @@ func (s *Stream) Flush(endStream bool) error {
 	return s.session.wakeUpPeer()
 }
 
+// 等待回调
 func (s *Stream) writeFallback(streamStatus uint32, err error) error {
 	s.session.logger.warnf("stream fallback seqID:%d len:%d reason:%s, sendBuf.isFromShareMemory: %t",
 		s.id, s.sendBuf.Len(), err.Error(), s.sendBuf.isFromShareMemory())
@@ -267,6 +275,7 @@ func (s *Stream) writeFallback(streamStatus uint32, err error) error {
 	}
 	s.sendBuf.recycle()
 	s.session.openCircuitBreaker()
+	// 等待回调
 	atomic.AddUint64(&s.session.stats.fallbackWriteCount, 1)
 	return s.session.waitForSend(nil, data)
 }
@@ -378,6 +387,7 @@ func (s *Stream) reset() error {
 
 // ReleaseReadAndReuse used to Release the data previous read by Stream.BufferReader(),
 // and reuse the last share memory buffer slice of read buffer for next write by Stream.BufferWriter()
+// 释放
 func (s *Stream) ReleaseReadAndReuse() {
 	s.recvBuf.releasePreviousReadAndReserve()
 	if s.recvBuf.len == 0 && s.recvBuf.sliceList.size() == 1 {
@@ -471,6 +481,7 @@ type pendingData struct {
 	unread []bufferSliceWrapper
 }
 
+// note  将pending 的data移植到 linkedBuffer 当中
 func (r *pendingData) moveToWithoutLock(toBuf *linkedBuffer) {
 	if len(r.unread) == 0 {
 		return
@@ -506,12 +517,14 @@ func (r *pendingData) moveTo(toBuf *linkedBuffer) {
 	r.Unlock()
 }
 
+// 添加数据
 func (r *pendingData) add(w bufferSliceWrapper) {
 	r.Lock()
 	r.unread = append(r.unread, w)
 	r.Unlock()
 }
 
+// 清除 pending的data
 func (r *pendingData) clear() {
 	r.Lock()
 	if len(r.unread) > 0 {

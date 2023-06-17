@@ -40,7 +40,8 @@ type queueManager struct {
 	memFd       int
 }
 
-//default cap is 16384, which mean that 16384 * 8 = 128 KB memory.
+// note 提炼抽象，
+// default cap is 16384, which mean that 16384 * 8 = 128 KB memory.
 type queue struct {
 	sync.Mutex
 	head               *int64  // consumer write, producer read
@@ -85,6 +86,7 @@ func createQueueManagerWithMemFd(queuePathName string, queueCap uint32) (*queueM
 	}, nil
 }
 
+// 创建队列管理
 func createQueueManager(shmPath string, queueCap uint32) (*queueManager, error) {
 	//ignore mkdir error
 	_ = os.MkdirAll(filepath.Dir(shmPath), os.ModePerm)
@@ -140,6 +142,7 @@ func mappingQueueManagerMemfd(queuePathName string, memFd int) (*queueManager, e
 	}, nil
 }
 
+// 创建并且映射内存管理
 func mappingQueueManager(shmPath string) (*queueManager, error) {
 	f, err := os.OpenFile(shmPath, os.O_RDWR, os.ModePerm)
 	if err != nil {
@@ -164,6 +167,7 @@ func mappingQueueManager(shmPath string) (*queueManager, error) {
 	}, nil
 }
 
+// 计算队列的大小
 func countQueueMemSize(queueCap uint32) int {
 	return queueHeaderLength + queueElementLen*int(queueCap)
 }
@@ -177,6 +181,7 @@ func createQueueFromBytes(data []byte, cap uint32) *queue {
 	return q
 }
 
+// 申请到内存
 func mappingQueueFromBytes(data []byte) *queue {
 	cap := *(*uint32)(unsafe.Pointer(&data[0]))
 	queueStartOffset := queueHeaderLength
@@ -190,11 +195,14 @@ func mappingQueueFromBytes(data []byte) *queue {
 	}
 }
 
-//cap prefer equals 2^n
+// cap prefer equals 2^n
 func createQueue(cap uint32) *queue {
+	// 这种make 的使用方法
 	return createQueueFromBytes(make([]byte, queueHeaderLength+int(cap*queueElementLen)), cap)
 }
 
+// 队列管理的类型
+// 释放 Munmap
 func (q *queueManager) unmap() {
 	if err := syscall.Munmap(q.mem); err != nil {
 		internalLogger.warnf("queueManager unmap error:" + err.Error())
@@ -260,11 +268,13 @@ func (q *queue) put(e queueElement) error {
 	return nil
 }
 
+// 确定是否是在工作
 func (q *queue) consumerIsWorking() bool {
 	return (atomic.LoadUint32(q.workingFlag)) > 0
 }
 
 func (q *queue) markWorking() bool {
+	// 如果 q.workingFlag 为 0 ，将会 修改为1 ，并且返回ture
 	return atomic.CompareAndSwapUint32(q.workingFlag, 0, 1)
 }
 

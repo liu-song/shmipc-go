@@ -24,6 +24,7 @@ import (
 var (
 	bufferSlicePool = &sync.Pool{
 		New: func() interface{} {
+			// 链表的池子
 			return &bufferSlice{}
 		},
 	}
@@ -31,6 +32,7 @@ var (
 
 type bufferHeader []byte
 
+// note 注意这个是链表
 type bufferSlice struct {
 	// 具体的定义
 	//bufferHeader layout: cap 4 byte | size 4 byte | start 4 byte | next 4 byte | flag 2 byte
@@ -43,7 +45,7 @@ type bufferSlice struct {
 	readIndex   int
 	writeIndex  int
 	isFromShm   bool
-	nextSlice   *bufferSlice
+	nextSlice   *bufferSlice // 构建成链表的操作
 }
 
 func (s *bufferSlice) next() *bufferSlice {
@@ -188,6 +190,7 @@ func (s *bufferSlice) skip(size int) int {
 	return unRead
 }
 
+// sliceList 是由 bufferSlice 组合成的链表的操作
 type sliceList struct {
 	frontSlice *bufferSlice
 	writeSlice *bufferSlice

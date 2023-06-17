@@ -39,7 +39,8 @@ type eventConn interface {
 	close() error
 }
 
-//only serve for connection now
+// only serve for connection now
+// 网络类型定义的具体的接口
 type dispatcher interface {
 	runLoop() error
 	newConnection(connFd *os.File) eventConn
@@ -53,6 +54,7 @@ var (
 
 func ensureDefaultDispatcherInit() {
 	if defaultDispatcher != nil {
+		// 初始化的构建
 		dispatcherInitOnce.Do(func() {
 			err := defaultDispatcher.runLoop()
 			if err != nil {
@@ -62,6 +64,7 @@ func ensureDefaultDispatcherInit() {
 	}
 }
 
+// 通过连接获得对应的文件的fd
 func getConnDupFd(conn net.Conn) (*os.File, error) {
 	type hasFile interface {
 		File() (f *os.File, err error)
